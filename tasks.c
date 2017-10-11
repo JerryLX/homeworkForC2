@@ -20,6 +20,10 @@
 #define OUT_SHOCKb "out_shock_b.csv"
 #define OUT_SHOCKc "out_shock.csv"
 #define OUT_INTERP "out_interp.csv"
+#define OUT_LINALSYS "out_linalsys.csv"
+#define OUT_heateqn_1 "out_heateqn_explicit_fe.csv"
+#define OUT_heateqn_2 "out_heateqn_explicit_ve.csv"
+#define OUT_heateqn_3 "out_heateqn_implicit_fe.csv"
 
 void* safe_malloc(size_t num_bytes)
 {
@@ -348,6 +352,145 @@ void interp(const char* q5_file, const double xo)
 
 void heateqn(const char* q6_file)
 {
-    printf("heateqn() - IMPLEMENT ME!\n");
-    exit(EXIT_FAILURE);
+   FILE *fp, *fpw1, *fpw2, *fpw3;
+   char buf[MAX_BUF_LEN];
+   double mu = -1;
+   int Nx=-1,Nt=-1;
+   fp = safe_fopen(q6_file, "r");
+   fgets(buf, MAX_BUF_LEN,fp); //skip first line
+   fscanf(fp,"%lf,%d,%d\n",&mu,&Nx,&Nt);
+   printf("%lf,%d,%d\n",mu,Nx,Nt);
+
+   double deltax = 1/(double)Nx,deltat = 1/(double)Nt; 
+   //printf("double: %lf\n",deltax);   
+   
+   //explicit-fixed-ends
+   double** res1;
+   res1 = (double**)malloc(sizeof(double*)*(Nt+1));
+   for(int i = 0; i < Nt+1; i++)
+     res1[i] = (double*)malloc(sizeof(double)*(Nx+1));
+   
+   for(int i = 0; i < Nx+1; i++){
+	double temp_x = deltax*i;
+   	if(temp_x>=0 && temp_x<0.125)
+	  res1[0][i] = 0;
+	else if(temp_x <=0.375)
+	  res1[0][i] = 0.5*(1-cos(8*PI*(temp_x-0.125)));
+	else if(temp_x <= 1)
+ 	  res1[0][i] = 0;
+	else
+	  printf("error occurs.\n");
+   }
+
+   for(int i = 1; i < Nt+1; i++)
+     for(int j = 0; j < Nx+1; j++){
+	if(j ==0 || j == Nx) 
+	  res1[i][j] = res1[0][j];
+	else {
+          double diff = (res1[i-1][j+1]+res1[i-1][j-1]-2*res1[i-1][j])/(deltax*deltax);
+	  res1[i][j] = res1[i-1][j]+deltat*mu*diff;
+	}
+
+   }
+  
+   fpw1 = safe_fopen(OUT_heateqn_1,"w");
+   fprintf(fpw1, "x,f(x)\n");
+   for(int i = 0; i < Nx+1; i++)
+     fprintf(fpw1,"%lf,%lf\n",i*deltax,res1[Nt][i]);
+   fclose(fpw1);
+   for(int i = 0; i < Nt+1; i++)
+     free(res1[i]);
+   free(res1);   
+   //explicit-variable-ends
+   double** res2;
+   res2 = (double**)malloc(sizeof(double*)*(Nt+1));
+   for(int i = 0; i < Nt+1; i++)
+     res2[i] = (double*)malloc(sizeof(double)*(Nx+1));
+   
+   for(int i = 0; i < Nx+1; i++){
+	double temp_x = deltax*i;
+   	if(temp_x>=0 && temp_x<0.125)
+	  res2[0][i] = 0;
+	else if(temp_x <=0.375)
+	  res2[0][i] = 0.5*(1-cos(8*PI*(temp_x-0.125)));
+	else if(temp_x <= 1)
+ 	  res2[0][i] = 0;
+	else
+	  printf("error occurs.\n");
+   }
+
+   for(int i = 1; i < Nt+1; i++)
+     for(int j = 0; j < Nx+1; j++){
+	if(j ==0){
+	  double diff = (res2[i-1][j]+res2[i-1][j+2]-2*res2[i-1][j+1])/(deltax*deltax);
+	  res2[i][j] = res2[i-1][j] + deltat*mu*diff;
+	}
+        else if(j == Nx) {
+	  double diff = (res2[i-1][j]+res2[i-1][j-2]-2*res2[i-1][j-1])/(deltax*deltax);
+	  res2[i][j] = res2[i-1][j] + deltat*mu*diff;
+	}
+	else {
+          double diff = (res2[i-1][j+1]+res2[i-1][j-1]-2*res2[i-1][j])/(deltax*deltax);
+	  res2[i][j] = res2[i-1][j]+deltat*mu*diff;
+	}
+
+   }
+  
+   fpw2 = safe_fopen(OUT_heateqn_2,"w");
+   fprintf(fpw2, "x,f(x)\n");
+   for(int i = 0; i < Nx+1; i++)
+     fprintf(fpw2,"%lf,%lf\n",i*deltax,res2[Nt][i]);
+   fclose(fpw2);
+   for(int i = 0; i < Nt+1; i++)
+     free(res2[i]);
+   free(res2);   
+
+   //implicit-fixed-ends
+   double** res3;
+   res3 = (double**)malloc(sizeof(double*)*(Nt+1));
+   for(int i = 0; i < Nt+1; i++)
+     res3[i] = (double*)malloc(sizeof(double)*(Nx+1));
+   
+   for(int i = 0; i < Nx+1; i++){
+	double temp_x = deltax*i;
+   	if(temp_x>=0 && temp_x<0.125)
+	  res3[0][i] = 0;
+	else if(temp_x <=0.375)
+	  res3[0][i] = 0.5*(1-cos(8*PI*(temp_x-0.125)));
+	else if(temp_x <= 1)
+ 	  res3[0][i] = 0;
+	else
+	  printf("error occurs.\n");
+   }
+   double a = (deltat*mu)/(deltax*deltax);
+   double* A = (double*)malloc(sizeof(double)*(Nx+1));
+   double* B = (double*)malloc(sizeof(double)*(Nx+1));
+   double* C = (double*)malloc(sizeof(double)*(Nx+1));
+   A[0] = 0;
+   C[Nx] = 0;
+   for(int i = 1; i < Nx+1; i++)
+	A[i] = a;
+   for(int i = 0; i < Nx+1; i++)
+	B[i] = (2*a+1);
+   for(int i = 0; i < Nx; i++)
+	C[i] = a;
+   for(int i = 1; i < Nt+1; i++) {
+   	TDMA(res3[i],Nx+1,A,B,C,res3[i-1]);  
+   }
+   free(A);
+   free(B);
+   free(C);
+  
+   fpw3 = safe_fopen(OUT_heateqn_3,"w");
+   fprintf(fpw3, "x,f(x)\n");
+   for(int i = 0; i < Nx+1; i++)
+     fprintf(fpw3,"%lf,%lf\n",i*deltax,res3[Nt][i]);
+   fclose(fpw3);
+   for(int i = 0; i < Nt+1; i++)
+     free(res3[i]);
+   free(res3);   
+
+   //close file
+   fclose(fp);
+  
 }
