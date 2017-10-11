@@ -280,7 +280,6 @@ double cubic_spline(double *x, double *y, int count, double x0)
         bi[i] = (y[i+1]-y[i])/h[i] - h[i]*M[i]/2 - h[i]*(M[i+1]-M[i])/6;
         ci[i] = M[i]/2;
         di[i] = (M[i+1]-M[i])/(6*h[i]);
-        printf("%.3lf,%.3lf,%.3lf,%.3lf\n",ai[i],bi[i],ci[i],di[i]);
     }
 
     int k=0; //the index of the range x0 belongs to
