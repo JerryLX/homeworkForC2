@@ -11,8 +11,6 @@
 #include <sys/time.h>
 #include <string.h>
 #include "tasks.h"
-#include <unistd.h>
-
 #define PI 3.14159265
 
 #define MAX_ITERATION 50000
@@ -143,9 +141,6 @@ void shockwave(const char* q2_file)
     fclose(fp);
     fclose(fpw);
     fclose(fpw2);
-
-    getcwd(buf,sizeof(buf));   
-    printf("current working directory: %s\n", buf);
 }
 
 
