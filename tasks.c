@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include "tasks.h"
+#include <unistd.h>
 
 #define PI 3.14159265
 
@@ -117,11 +118,11 @@ void shockwave(const char* q2_file)
     fprintf(fpw, "theta,beta_lower,beta_upper\n");
     fprintf(fpw, "%.6lf,%.6lf,%.6lf\n",(double)0,asin(1/M)*180/PI,(double)90);
 
-    for(double theta_i=1;theta_i<theta_max;theta_i++){
+    for(int theta_i=1;theta_i<theta_max;theta_i++){
         beta_L = newton(beta_L_init,theta_i,M,gamma);
         beta_U = newton(beta_U_init,theta_i,M,gamma);
         if(beta_U < 0) break;
-        fprintf(fpw, "%.6lf,%.6lf,%.6lf\n",theta_i,beta_L,beta_U);
+        fprintf(fpw, "%d,%.6lf,%.6lf\n",theta_i,beta_L,beta_U);
     }
 
     //part (c)    
@@ -130,12 +131,12 @@ void shockwave(const char* q2_file)
     fgets(buf, MAX_BUF_LEN,fp); //skip first line
     while(!feof(fp)){
         fscanf(fp, "%lf\n", &M);
-        fprintf(fpw2, "%.6lf,%.6lf,%.6lf,%.6lf\n",M,(double)0,asin(1/M)*180/PI,(double)90);
-        for(double theta_i=1;theta_i<theta_max;theta_i++){
+        fprintf(fpw2, "%.6lf,%d,%.6lf,%.6lf\n",M,0,asin(1/M)*180/PI,(double)90);
+        for(int theta_i=1;theta_i<theta_max;theta_i++){
             beta_L = newton(beta_L_init,theta_i,M,gamma);
             beta_U = newton(beta_U_init,theta_i,M,gamma);
             if(beta_U < 0) break;
-            fprintf(fpw2, "%.6lf,%.6lf,%.6lf,%.6lf\n",M,theta_i,beta_L,beta_U);
+            fprintf(fpw2, "%.6lf,%d,%.6lf,%.6lf\n",M,theta_i,beta_L,beta_U);
         }
     }
     
@@ -143,7 +144,10 @@ void shockwave(const char* q2_file)
     fclose(fpw);
     fclose(fpw2);
 
+    getcwd(buf,sizeof(buf));   
+    printf("current working directory: %s\n", buf);
 }
+
 
 
 //function to calculate tri-diagonal system
@@ -215,6 +219,7 @@ void linalgbsys(const char* q4_file)
     for(int i=0;i<count;i++){
         fprintf(fpw,"%.6lf\n",xi[i]);
     }
+
     fclose(fp);
     fclose(fpw);
 
