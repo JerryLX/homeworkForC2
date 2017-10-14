@@ -91,7 +91,15 @@ double newton(double init, double theta, double M, double gamma){
     }
     return beta;
 }
-
+void printfile(const char *filename){
+        char ch;
+        FILE *fp = safe_fopen(filename,"r");
+    while(!feof(fp))
+    {
+        putchar(ch);
+        fscanf(fp,"%c",&ch);
+    }
+}
 void shockwave(const char* q2_file)
 {
     FILE *fp, *fpw, *fpw2;
@@ -225,19 +233,46 @@ void linalgbsys(const char* q4_file)
     free(xi);
 }
 
+struct Pair{
+    int first;
+    double second;
+};
+
+int cmp(const void *a, const void *b){
+    return ((struct Pair *)a)->second > ((struct Pair *)b)->second;
+}
+
 double lagrange(double *x, double *y, int count, double x0)
 {
     if(count < 3){
         printf("second order lagrange needs at least 3 points!\n");
         exit(EXIT_FAILURE);
     }
+
+    double x1,x2,x3,y1,y2,y3;
+    struct Pair item[count];
+
+    for(int i=0;i<count;i++){
+        item[i].first=i;
+        item[i].second=fabs(x[i]-x0);
+    }
+    qsort(item,count,sizeof(struct Pair),cmp);
+    x3 = x[item[0].first];
+    x2 = x[item[1].first];
+    x1 = x[item[2].first];
+    y3 = y[item[0].first];
+    y2 = y[item[1].first];
+    y1 = y[item[2].first];
+
+    printf("%lf,%lf,%lf\n",x1,x2,x3);
+    printf("%lf,%lf,%lf\n",y1,y2,y3);
 //    x++;y++;
     //use first three value to calculate
-    double l0 = (x0-x[1])*(x0-x[2])/(x[0]-x[1])/(x[0]-x[2]);
-    double l1 = (x0-x[0])*(x0-x[2])/(x[1]-x[0])/(x[1]-x[2]);
-    double l2 = (x0-x[0])*(x0-x[1])/(x[2]-x[0])/(x[2]-x[1]);
-
-    return y[0]*l0+y[1]*l1+y[2]*l2;
+    double l0 = (x0-x2)*(x0-x3)/(x1-x2)/(x1-x3);
+    double l1 = (x0-x1)*(x0-x3)/(x2-x1)/(x2-x3);
+    double l2 = (x0-x1)*(x0-x2)/(x3-x1)/(x3-x2);
+    
+    return y1*l0+y2*l1+y3*l2;
 }
 
 double cubic_spline(double *x, double *y, int count, double x0)
@@ -284,6 +319,8 @@ double cubic_spline(double *x, double *y, int count, double x0)
         bi[i] = (y[i+1]-y[i])/h[i] - h[i]*M[i]/2 - h[i]*(M[i+1]-M[i])/6;
         ci[i] = M[i]/2;
         di[i] = (M[i+1]-M[i])/(6*h[i]);
+    
+        printf("%.6lf,%.6lf,%.6lf,%.6lf\n",ai[i],bi[i],ci[i],di[i]);   
     }
 
     int k=0; //the index of the range x0 belongs to
@@ -469,11 +506,11 @@ void heateqn(const char* q6_file)
    A[0] = 0;
    C[Nx] = 0;
    for(int i = 1; i < Nx+1; i++)
-	A[i] = a;
+	A[i] = -a;
    for(int i = 0; i < Nx+1; i++)
 	B[i] = (2*a+1);
    for(int i = 0; i < Nx; i++)
-	C[i] = a;
+	C[i] = -a;
    for(int i = 1; i < Nt+1; i++) {
    	TDMA(res3[i],Nx+1,A,B,C,res3[i-1]);  
    }
