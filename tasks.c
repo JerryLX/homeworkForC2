@@ -466,14 +466,19 @@ void heateqn(const char* q6_file)
    double* A = (double*)malloc(sizeof(double)*(Nx+1));
    double* B = (double*)malloc(sizeof(double)*(Nx+1));
    double* C = (double*)malloc(sizeof(double)*(Nx+1));
-   A[0] = 0;
-   C[Nx] = 0;
    for(int i = 1; i < Nx+1; i++)
-	A[i] = a;
+	A[i] = -a;
    for(int i = 0; i < Nx+1; i++)
 	B[i] = (2*a+1);
    for(int i = 0; i < Nx; i++)
-	C[i] = a;
+	C[i] = -a;
+   
+   A[0] = 0;
+   A[Nx] = 0;
+   B[0] = 1;
+   B[Nx] = 1;
+   C[0] = 0;
+   C[Nx] = 0;
    for(int i = 1; i < Nt+1; i++) {
    	TDMA(res3[i],Nx+1,A,B,C,res3[i-1]);  
    }
